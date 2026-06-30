@@ -27,6 +27,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.example.webscraper.databinding.ActivityMainBinding
 import com.example.webscraper.service.MacroForegroundService
+import com.example.webscraper.ui.viewer.TextViewerActivity
 import com.example.webscraper.util.CLICK_TEXT_EXTRACTOR_SCRIPT
 import com.example.webscraper.util.CORE_SCRIPT
 import com.example.webscraper.util.JS_BRIDGE_NAME
@@ -77,6 +78,15 @@ class MainActivity : AppCompatActivity() {
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* 결과 무시 */ }
 
+    // 뷰어로 열어볼 폴더를 한 번 선택받는다. 읽기 전용으로만 쓰므로 읽기 권한만 유지한다.
+    private val openViewerFolderLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+            if (uri != null) {
+                contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                startActivity(TextViewerActivity.createIntent(this, uri))
+            }
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -85,6 +95,7 @@ class MainActivity : AppCompatActivity() {
         setupWebView()
         setupUrlBar()
         setupMacroControls()
+        setupViewerControls()
         observeViewModel()
         handleBackPresses()
     }
@@ -150,6 +161,13 @@ class MainActivity : AppCompatActivity() {
         }
         binding.buttonMacroCancel.setOnClickListener {
             viewModel.onMacroCancelRequested()
+        }
+    }
+
+    /** 뷰어로 열어볼 폴더를 선택하게 한 뒤 TextViewerActivity를 띄운다. */
+    private fun setupViewerControls() {
+        binding.buttonViewer.setOnClickListener {
+            openViewerFolderLauncher.launch(null)
         }
     }
 

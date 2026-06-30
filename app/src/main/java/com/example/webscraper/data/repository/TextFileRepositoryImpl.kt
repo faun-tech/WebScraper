@@ -3,6 +3,8 @@ package com.example.webscraper.data.repository
 import android.content.Context
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
+import com.example.webscraper.data.model.TextFileEntry
+import com.example.webscraper.util.NaturalOrderComparator
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -38,4 +40,32 @@ class TextFileRepositoryImpl @Inject constructor(
                 }
             }
         }
+
+    override suspend fun listTextFiles(folderUri: Uri): Result<List<TextFileEntry>> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val folder = DocumentFile.fromTreeUri(context, folderUri)
+                    ?: throw IOException("폴더를 열 수 없습니다.")
+                folder.listFiles()
+                    .filter { it.isFile && isTextFile(it.name) }
+                    .mapNotNull { file ->
+                        val name = file.name ?: return@mapNotNull null
+                        TextFileEntry(uri = file.uri, name = name)
+                    }
+                    .sortedWith(compareBy(NaturalOrderComparator) { it.name })
+            }
+        }
+
+    override suspend fun readText(uri: Uri): Result<String> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val inputStream = context.contentResolver.openInputStream(uri)
+                    ?: throw IOException("입력 스트림을 열 수 없습니다.")
+                inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+            }
+        }
+
+    private fun isTextFile(name: String?): Boolean {
+        return name?.endsWith(".txt", ignoreCase = true) == true
+    }
 }

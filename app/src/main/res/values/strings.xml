@@ -5,4 +5,23 @@
     <string name="go_button_text">이동하기</string>
     <string name="macro_button_text">매크로</string>
     <string name="macro_cancel_button_text">중지</string>
+    <string name="viewer_button_text">뷰어</string>
+
+    <string name="viewer_back_button_text">←</string>
+    <string name="viewer_settings_button_text">설정</string>
+    <string name="viewer_previous_button_text">◀ 이전</string>
+    <string name="viewer_next_button_text">다음 ▶</string>
+    <string name="viewer_empty_folder_text">폴더 안에 텍스트 파일이 없습니다.</string>
+    <string name="viewer_no_folder_error">폴더 정보를 불러오지 못했습니다.</string>
+
+    <string name="viewer_settings_dialog_title">뷰어 설정</string>
+    <string name="viewer_settings_close_button">닫기</string>
+    <string name="viewer_settings_preview_text">미리보기: 가나다 ABC 123</string>
+    <string name="viewer_settings_background_label">배경색</string>
+    <string name="viewer_settings_text_color_label">글자색</string>
+    <string name="viewer_settings_text_size_label">글자 크기</string>
+    <string name="viewer_settings_size_small">작게</string>
+    <string name="viewer_settings_size_medium">보통</string>
+    <string name="viewer_settings_size_large">크게</string>
+    <string name="viewer_settings_size_extra_large">아주 크게</string>
 </resources>
