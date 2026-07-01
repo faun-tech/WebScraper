@@ -38,4 +38,7 @@ sealed class UiEvent {
 
     /** 실행 중인 매크로 포그라운드 서비스를 취소하라는 이벤트. */
     object CancelMacroService : UiEvent()
+
+    /** [urls](최신순) 중 하나를 골라 다시 이동할 수 있도록 URL 히스토리를 보여주라는 이벤트 */
+    data class ShowUrlHistory(val urls: List<String>) : UiEvent()
 }

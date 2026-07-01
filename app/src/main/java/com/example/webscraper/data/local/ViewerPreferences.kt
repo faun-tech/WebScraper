@@ -30,7 +30,7 @@ class ViewerPreferences @Inject constructor(
             ?: ViewerTextColorPreset.BLACK
         val textSize = prefs.getString(KEY_TEXT_SIZE, null)
             ?.let { runCatching { ViewerTextSizePreset.valueOf(it) }.getOrNull() }
-            ?: ViewerTextSizePreset.MEDIUM
+            ?: ViewerTextSizePreset.DEFAULT
         return ViewerSettings(background, textColor, textSize)
     }
 

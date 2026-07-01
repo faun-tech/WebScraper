@@ -6,6 +6,10 @@
     <string name="macro_button_text">매크로</string>
     <string name="macro_cancel_button_text">중지</string>
     <string name="viewer_button_text">뷰어</string>
+    <string name="history_button_text">URL 히스토리</string>
+    <string name="history_dialog_title">URL 히스토리</string>
+    <string name="history_clear_button">전체 삭제</string>
+    <string name="history_close_button">닫기</string>
 
     <string name="viewer_back_button_text">←</string>
     <string name="viewer_settings_button_text">설정</string>
@@ -20,8 +24,5 @@
     <string name="viewer_settings_background_label">배경색</string>
     <string name="viewer_settings_text_color_label">글자색</string>
     <string name="viewer_settings_text_size_label">글자 크기</string>
-    <string name="viewer_settings_size_small">작게</string>
-    <string name="viewer_settings_size_medium">보통</string>
-    <string name="viewer_settings_size_large">크게</string>
-    <string name="viewer_settings_size_extra_large">아주 크게</string>
+    <string name="viewer_settings_size_value">%dsp</string>
 </resources>

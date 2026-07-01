@@ -18,12 +18,15 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:autofillHints=""
-            android:background="@android:color/white"
+            android:background="@drawable/bg_url_input"
             android:hint="@string/url_hint"
             android:imeOptions="actionGo"
             android:inputType="textUri"
             android:maxLines="1"
-            android:padding="8dp"
+            android:paddingStart="14dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="8dp"
             android:textColor="@android:color/black"
             android:textColorHint="@android:color/darker_gray" />
 
@@ -32,16 +35,25 @@
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:layout_marginStart="4dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:background="@drawable/bg_icon_button"
             android:contentDescription="@string/go_button_text"
             android:padding="8dp"
             android:src="@drawable/ic_go" />
 
         <ImageButton
+            android:id="@+id/buttonHistory"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_icon_button"
+            android:contentDescription="@string/history_button_text"
+            android:padding="8dp"
+            android:src="@drawable/ic_history" />
+
+        <ImageButton
             android:id="@+id/buttonMacro"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:background="@drawable/bg_icon_button"
             android:contentDescription="@string/macro_button_text"
             android:padding="8dp"
             android:src="@drawable/ic_macro" />
@@ -50,7 +62,7 @@
             android:id="@+id/buttonViewer"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:background="@drawable/bg_icon_button"
             android:contentDescription="@string/viewer_button_text"
             android:padding="8dp"
             android:src="@drawable/ic_viewer" />

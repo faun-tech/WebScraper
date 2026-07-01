@@ -1,7 +1,6 @@
 package com.example.webscraper.ui.main
 
 import android.Manifest
-import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -25,6 +24,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.example.webscraper.R
 import com.example.webscraper.databinding.ActivityMainBinding
 import com.example.webscraper.service.MacroForegroundService
 import com.example.webscraper.ui.viewer.TextViewerActivity
@@ -32,6 +32,7 @@ import com.example.webscraper.util.CLICK_TEXT_EXTRACTOR_SCRIPT
 import com.example.webscraper.util.CORE_SCRIPT
 import com.example.webscraper.util.JS_BRIDGE_NAME
 import com.example.webscraper.util.loadUrlWithReferer
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
@@ -96,6 +97,7 @@ class MainActivity : AppCompatActivity() {
         setupUrlBar()
         setupMacroControls()
         setupViewerControls()
+        setupHistoryControls()
         observeViewModel()
         handleBackPresses()
     }
@@ -171,6 +173,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun setupHistoryControls() {
+        binding.buttonHistory.setOnClickListener {
+            viewModel.onHistoryButtonClicked()
+        }
+    }
+
     private fun navigateToTypedUrl() {
         viewModel.onUrlInputChanged(binding.editUrl.text.toString())
         viewModel.onNavigateClicked()
@@ -194,7 +202,7 @@ class MainActivity : AppCompatActivity() {
             inputType = InputType.TYPE_CLASS_NUMBER
             setText(startNumber.toString())
         }
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle("매크로")
             .setMessage("$startNumber 화부터 시작합니다. 마지막 회차 숫자를 입력하세요.")
             .setView(input)
@@ -207,6 +215,21 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             .setNegativeButton("취소", null)
+            .show()
+    }
+
+    /** 최근 이동한 [urls](최신순) 중 하나를 골라 다시 그 페이지로 이동할 수 있는 목록 다이얼로그. */
+    private fun showUrlHistoryDialog(urls: List<String>) {
+        val items = urls.toTypedArray()
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.history_dialog_title)
+            .setItems(items) { _, which ->
+                viewModel.onHistoryUrlSelected(items[which])
+            }
+            .setNegativeButton(R.string.history_close_button, null)
+            .setNeutralButton(R.string.history_clear_button) { _, _ ->
+                viewModel.onHistoryClearRequested()
+            }
             .show()
     }
 
@@ -272,6 +295,10 @@ class MainActivity : AppCompatActivity() {
                             // (취소 버튼은 매크로가 실행 중일 때만 보임) startForegroundService가
                             // 아닌 일반 startService로 취소 명령만 전달하면 된다.
                             startService(MacroForegroundService.cancelIntent(this@MainActivity))
+                        }
+
+                        is UiEvent.ShowUrlHistory -> {
+                            showUrlHistoryDialog(event.urls)
                         }
                     }
                 }

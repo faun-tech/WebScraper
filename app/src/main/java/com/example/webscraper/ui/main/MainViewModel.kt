@@ -3,6 +3,7 @@ package com.example.webscraper.ui.main
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.webscraper.data.local.UrlHistoryStore
 import com.example.webscraper.data.repository.TextFileRepository
 import com.example.webscraper.macro.MacroProgress
 import com.example.webscraper.macro.MacroProgressHolder
@@ -20,7 +21,8 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val textFileRepository: TextFileRepository,
-    private val macroProgressHolder: MacroProgressHolder
+    private val macroProgressHolder: MacroProgressHolder,
+    private val urlHistoryStore: UrlHistoryStore
 ) : ViewModel() {
 
     private val _urlInput = MutableStateFlow("https://")
@@ -54,7 +56,35 @@ class MainViewModel @Inject constructor(
         }
         val normalized = normalizeUrl(raw)
         _urlInput.value = normalized
+        urlHistoryStore.addUrl(normalized)
         _events.trySend(UiEvent.LoadUrl(normalized))
+    }
+
+    // ---------------------------------------------------------------------
+    // URL 히스토리
+    // ---------------------------------------------------------------------
+
+    /** 히스토리 버튼 클릭 시 호출된다. 저장된 URL들을 최신순으로 보여주라는 이벤트를 보낸다. */
+    fun onHistoryButtonClicked() {
+        val history = urlHistoryStore.getHistory()
+        if (history.isEmpty()) {
+            _events.trySend(UiEvent.ShowToast("히스토리가 비어 있습니다."))
+            return
+        }
+        _events.trySend(UiEvent.ShowUrlHistory(history))
+    }
+
+    /** 히스토리 목록에서 [url]을 선택했을 때 호출된다. 그 페이지로 다시 이동한다. */
+    fun onHistoryUrlSelected(url: String) {
+        _urlInput.value = url
+        urlHistoryStore.addUrl(url)
+        _events.trySend(UiEvent.LoadUrl(url))
+    }
+
+    /** 히스토리 다이얼로그에서 "전체 삭제"를 눌렀을 때 호출된다. */
+    fun onHistoryClearRequested() {
+        urlHistoryStore.clearHistory()
+        _events.trySend(UiEvent.ShowToast("히스토리를 모두 삭제했습니다."))
     }
 
     /**

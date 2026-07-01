@@ -1,14 +1,16 @@
 package com.example.webscraper.ui.viewer
 
-import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.FrameLayout
+import android.widget.SeekBar
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -23,6 +25,7 @@ import com.example.webscraper.data.model.ViewerTextColorPreset
 import com.example.webscraper.data.model.ViewerTextSizePreset
 import com.example.webscraper.databinding.ActivityTextViewerBinding
 import com.example.webscraper.databinding.DialogViewerSettingsBinding
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
@@ -141,6 +144,16 @@ class TextViewerActivity : AppCompatActivity() {
         val dialogBinding = DialogViewerSettingsBinding.inflate(LayoutInflater.from(this))
         var current = initialSettings
 
+        // 미리보기 박스 배경: setBackgroundColor()를 그대로 쓰면 둥근 모서리가 사각 ColorDrawable로
+        // 덮여 사라지므로, 모서리를 유지한 채 색만 바꿀 수 있는 GradientDrawable을 직접 만들어 쓴다.
+        val previewBackground = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, 12f, resources.displayMetrics
+            )
+        }
+        dialogBinding.textPreview.background = previewBackground
+
         val backgroundSwatches = listOf(
             dialogBinding.swatchBgWhite to ViewerBackgroundPreset.WHITE,
             dialogBinding.swatchBgSepia to ViewerBackgroundPreset.SEPIA,
@@ -155,17 +168,15 @@ class TextViewerActivity : AppCompatActivity() {
             dialogBinding.swatchTextLightGray to ViewerTextColorPreset.LIGHT_GRAY,
             dialogBinding.swatchTextWhite to ViewerTextColorPreset.WHITE
         )
-        val sizeRadioButtons = mapOf(
-            dialogBinding.radioSizeSmall to ViewerTextSizePreset.SMALL,
-            dialogBinding.radioSizeMedium to ViewerTextSizePreset.MEDIUM,
-            dialogBinding.radioSizeLarge to ViewerTextSizePreset.LARGE,
-            dialogBinding.radioSizeExtraLarge to ViewerTextSizePreset.EXTRA_LARGE
-        )
+        // 선언 순서 = 작은 글자 -> 큰 글자 순서. SeekBar의 진행값(0..마지막 인덱스)이
+        // 그대로 이 목록의 인덱스가 된다.
+        val sizeOptions = ViewerTextSizePreset.values().toList()
 
         fun refreshPreview() {
-            dialogBinding.textPreview.setBackgroundColor(Color.parseColor(current.background.colorHex))
+            previewBackground.setColor(Color.parseColor(current.background.colorHex))
             dialogBinding.textPreview.setTextColor(Color.parseColor(current.textColor.colorHex))
             dialogBinding.textPreview.textSize = current.textSize.sp
+            dialogBinding.textSizeValue.text = getString(R.string.viewer_settings_size_value, current.textSize.sp.toInt())
             highlightSwatches(backgroundSwatches, current.background)
             highlightSwatches(textColorSwatches, current.textColor)
         }
@@ -182,14 +193,22 @@ class TextViewerActivity : AppCompatActivity() {
         textColorSwatches.forEach { (view, preset) ->
             view.setOnClickListener { applyChange(current.copy(textColor = preset)) }
         }
-        sizeRadioButtons.entries.forEach { (radioButton, preset) ->
-            radioButton.setOnClickListener { applyChange(current.copy(textSize = preset)) }
-        }
 
-        sizeRadioButtons.entries.firstOrNull { it.value == current.textSize }?.key?.isChecked = true
+        dialogBinding.seekBarTextSize.max = sizeOptions.lastIndex
+        dialogBinding.seekBarTextSize.progress = sizeOptions.indexOf(current.textSize).coerceAtLeast(0)
+        dialogBinding.seekBarTextSize.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                if (!fromUser) return
+                applyChange(current.copy(textSize = sizeOptions[progress]))
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar) = Unit
+            override fun onStopTrackingTouch(seekBar: SeekBar) = Unit
+        })
+
         refreshPreview()
 
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.viewer_settings_dialog_title)
             .setView(dialogBinding.root)
             .setPositiveButton(R.string.viewer_settings_close_button, null)

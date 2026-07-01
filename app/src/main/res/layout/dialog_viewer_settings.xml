@@ -206,52 +206,34 @@
 
         </LinearLayout>
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="6dp"
-            android:text="@string/viewer_settings_text_size_label"
-            android:textStyle="bold" />
-
-        <RadioGroup
-            android:id="@+id/radioGroupTextSize"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <RadioButton
-                android:id="@+id/radioSizeSmall"
+            <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/viewer_settings_size_small"
-                android:textSize="14sp" />
+                android:text="@string/viewer_settings_text_size_label"
+                android:textStyle="bold" />
 
-            <RadioButton
-                android:id="@+id/radioSizeMedium"
-                android:layout_width="0dp"
+            <TextView
+                android:id="@+id/textSizeValue"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/viewer_settings_size_medium"
-                android:textSize="16sp" />
+                android:minWidth="40dp"
+                android:gravity="end"
+                android:textStyle="bold" />
 
-            <RadioButton
-                android:id="@+id/radioSizeLarge"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/viewer_settings_size_large"
-                android:textSize="18sp" />
+        </LinearLayout>
 
-            <RadioButton
-                android:id="@+id/radioSizeExtraLarge"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/viewer_settings_size_extra_large"
-                android:textSize="20sp" />
-
-        </RadioGroup>
+        <SeekBar
+            android:id="@+id/seekBarTextSize"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
 
     </LinearLayout>
 
