@@ -13,6 +13,9 @@
 
     <string name="viewer_back_button_text">←</string>
     <string name="viewer_settings_button_text">설정</string>
+    <string name="viewer_file_list_button_text">목록</string>
+    <string name="viewer_file_list_dialog_title">파일 목록</string>
+    <string name="viewer_file_list_close_button">닫기</string>
     <string name="viewer_previous_button_text">◀ 이전</string>
     <string name="viewer_next_button_text">다음 ▶</string>
     <string name="viewer_empty_folder_text">폴더 안에 텍스트 파일이 없습니다.</string>

@@ -71,6 +71,9 @@ class TextViewerActivity : AppCompatActivity() {
         binding.buttonSettings.setOnClickListener {
             showSettingsDialog(viewModel.uiState.value.settings)
         }
+        binding.buttonFileList.setOnClickListener {
+            showFileListDialog(viewModel.uiState.value)
+        }
     }
 
     override fun onPause() {
@@ -112,12 +115,33 @@ class TextViewerActivity : AppCompatActivity() {
         binding.textEmpty.visibility = if (showEmpty) View.VISIBLE else View.GONE
         binding.scrollContent.visibility = if (showEmpty) View.INVISIBLE else View.VISIBLE
 
-        binding.textContent.text = state.currentText
+        // 내용이 실제로 바뀌었을 때만 setText()를 호출한다. textIsSelectable=true인 TextView는
+        // setText()가 호출될 때마다 커서 위치(0)로 스크롤을 맞추려 하는데, 화면을 껐다 켜서
+        // repeatOnLifecycle 구독이 재시작되면 동일한 state가 다시 방출되어 매번 이 문제가
+        // 발생했다(스크롤이 맨 위로 튀는 버그의 원인).
+        if (binding.textContent.text.toString() != state.currentText) {
+            binding.textContent.text = state.currentText
+        }
 
         binding.buttonPrevious.isEnabled = state.hasPrevious
         binding.buttonNext.isEnabled = state.hasNext
+        binding.buttonFileList.isEnabled = state.files.isNotEmpty()
 
         applySettings(state.settings)
+    }
+
+    /** 현재 폴더의 파일 목록을 보여주고, 고른 파일로 바로 이동하는 다이얼로그. */
+    private fun showFileListDialog(state: TextViewerUiState) {
+        if (state.files.isEmpty()) return
+        val names = state.files.map { it.name }.toTypedArray()
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.viewer_file_list_dialog_title)
+            .setSingleChoiceItems(names, state.currentIndex) { dialog, which ->
+                viewModel.onFileSelected(which, binding.scrollContent.scrollY)
+                dialog.dismiss()
+            }
+            .setNegativeButton(R.string.viewer_file_list_close_button, null)
+            .show()
     }
 
     /**

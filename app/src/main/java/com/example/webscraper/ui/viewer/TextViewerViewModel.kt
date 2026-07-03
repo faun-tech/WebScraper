@@ -92,6 +92,18 @@ class TextViewerViewModel @Inject constructor(
     }
 
     /**
+     * 목록 다이얼로그에서 [index]번째 파일을 선택했을 때 그 파일로 바로 이동한다.
+     * 이동 전 [currentScrollY] 위치를 현재 파일 것으로 저장한다.
+     */
+    fun onFileSelected(index: Int, currentScrollY: Int) {
+        val state = _uiState.value
+        if (index !in state.files.indices || index == state.currentIndex) return
+        saveScrollPosition(currentScrollY)
+        _uiState.value = state.copy(currentIndex = index)
+        loadCurrentFile()
+    }
+
+    /**
      * 현재 보고 있는 파일의 스크롤 위치([scrollY])를 저장한다. 화면을 벗어나기 전(다음/이전
      * 파일로 이동하기 직전, 액티비티가 멈출 때)에 호출한다.
      */

@@ -54,6 +54,22 @@
         </LinearLayout>
 
         <Button
+            android:id="@+id/buttonFileList"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:paddingStart="10dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="10dp"
+            android:paddingBottom="4dp"
+            android:text="@string/viewer_file_list_button_text"
+            android:textColor="@android:color/white"
+            android:textSize="13sp" />
+
+        <Button
             android:id="@+id/buttonSettings"
             style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"
