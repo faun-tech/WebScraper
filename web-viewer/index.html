@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>텍스트 뷰어 (PC 프리뷰)</title>
+<style>
+  :root {
+    --bar-color: #3f51b5;
+    --bar-color-dark: #303f9f;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    font-family: -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+  }
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  /* ---------- 초기 화면 (폴더 선택) ---------- */
+  #pickScreen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    color: #444;
+  }
+  #pickScreen h1 { font-size: 18px; margin: 0; }
+  #pickScreen p { font-size: 13px; color: #888; margin: 0; text-align: center; max-width: 320px; }
+  .primary-btn {
+    background: var(--bar-color);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .primary-btn:hover { background: var(--bar-color-dark); }
+  #unsupportedNotice {
+    display: none;
+    color: #b00020;
+    font-size: 12px;
+    max-width: 320px;
+    text-align: center;
+  }
+
+  /* ---------- 뷰어 화면 ---------- */
+  #viewerScreen { display: none; flex-direction: column; height: 100%; }
+
+  #topBar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--bar-color);
+    color: #fff;
+    padding: 8px;
+  }
+  #topBar button {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 13px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  #topBar button:hover { background: rgba(255,255,255,0.15); }
+  #topBar button:disabled { opacity: 0.4; cursor: default; }
+  #topBar button:disabled:hover { background: transparent; }
+
+  #titleBlock { flex: 1; min-width: 0; margin-left: 4px; }
+  #fileTitle {
+    font-size: 14px; font-weight: bold;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  #positionLabel { font-size: 11px; opacity: 0.9; }
+
+  #contentArea {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+  #scrollContent {
+    height: 100%;
+    overflow-y: auto;
+  }
+  #textContent {
+    margin: 0;
+    padding: 20px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.5;
+    font-family: -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+  }
+  #emptyNotice, #loadingNotice {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    font-size: 14px; color: #888; display: none;
+  }
+
+  #bottomBar {
+    display: flex;
+    background: var(--bar-color-dark);
+    padding: 6px;
+    gap: 6px;
+  }
+  #bottomBar button {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #fff;
+    padding: 10px;
+    font-size: 14px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  #bottomBar button:hover:not(:disabled) { background: rgba(255,255,255,0.15); }
+  #bottomBar button:disabled { opacity: 0.4; cursor: default; }
+
+  /* ---------- 다이얼로그 공통 ---------- */
+  .overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4);
+    align-items: center; justify-content: center;
+    z-index: 10;
+  }
+  .dialog {
+    background: #fff;
+    border-radius: 10px;
+    width: 320px;
+    max-width: 90vw;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 16px;
+  }
+  .dialog h2 { font-size: 15px; margin: 0 0 12px; }
+  .dialog .close-row {
+    text-align: right;
+    margin-top: 14px;
+  }
+  .dialog .close-row button {
+    background: none; border: none; color: var(--bar-color);
+    font-size: 14px; cursor: pointer; padding: 6px 10px;
+  }
+
+  /* 파일 목록 다이얼로그 */
+  #fileListItems { list-style: none; margin: 0; padding: 0; }
+  #fileListItems li {
+    padding: 10px 6px;
+    font-size: 13px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  #fileListItems li:hover { background: #f0f0f0; }
+  #fileListItems li.selected { color: var(--bar-color); font-weight: bold; }
+
+  /* 설정 다이얼로그 */
+  .settings-section { margin-bottom: 16px; }
+  .settings-label { font-size: 12px; color: #666; margin-bottom: 6px; }
+  .swatch-row { display: flex; gap: 8px; }
+  .swatch {
+    width: 32px; height: 32px;
+    border-radius: 6px;
+    border: 2px solid transparent;
+    cursor: pointer;
+  }
+  .swatch.selected { border-color: var(--bar-color); }
+  #previewBox {
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 16px;
+    font-size: 16px;
+    line-height: 1.5;
+    border: 1px solid #e0e0e0;
+  }
+  #sizeValue { font-size: 12px; color: #666; margin-left: 6px; }
+  #sizeSlider { width: 100%; }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- 폴더 선택 화면 -->
+  <div id="pickScreen">
+    <h1>텍스트 뷰어 (PC 프리뷰)</h1>
+    <p>안드로이드 앱의 텍스트 뷰어 화면을 PC 브라우저에서 임시로 확인하기 위한 도구입니다. .txt 파일이 들어있는 폴더를 선택하세요.</p>
+    <button class="primary-btn" id="pickFolderBtn">폴더 선택</button>
+    <div id="unsupportedNotice">
+      이 브라우저는 폴더 선택 API(File System Access API)를 지원하지 않습니다.<br />
+      최신 Chrome 또는 Edge에서 열어주세요.
+    </div>
+  </div>
+
+  <!-- 뷰어 화면 -->
+  <div id="viewerScreen">
+    <div id="topBar">
+      <button id="changeFolderBtn">폴더변경</button>
+      <div id="titleBlock">
+        <div id="fileTitle"></div>
+        <div id="positionLabel"></div>
+      </div>
+      <button id="fileListBtn">목록</button>
+      <button id="settingsBtn">설정</button>
+    </div>
+
+    <div id="contentArea">
+      <div id="scrollContent">
+        <pre id="textContent"></pre>
+      </div>
+      <div id="loadingNotice">불러오는 중...</div>
+      <div id="emptyNotice">폴더 안에 텍스트 파일이 없습니다.</div>
+    </div>
+
+    <div id="bottomBar">
+      <button id="prevBtn">이전</button>
+      <button id="nextBtn">다음</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- 파일 목록 다이얼로그 -->
+<div class="overlay" id="fileListOverlay">
+  <div class="dialog">
+    <h2>파일 목록</h2>
+    <ul id="fileListItems"></ul>
+    <div class="close-row"><button data-close="fileListOverlay">닫기</button></div>
+  </div>
+</div>
+
+<!-- 설정 다이얼로그 -->
+<div class="overlay" id="settingsOverlay">
+  <div class="dialog">
+    <h2>보기 설정</h2>
+    <pre id="previewBox">미리보기 텍스트입니다.</pre>
+
+    <div class="settings-section">
+      <div class="settings-label">배경색</div>
+      <div class="swatch-row" id="bgSwatches"></div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-label">글자색</div>
+      <div class="swatch-row" id="textColorSwatches"></div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-label">글자 크기<span id="sizeValue"></span></div>
+      <input type="range" id="sizeSlider" min="0" max="10" step="1" />
+    </div>
+
+    <div class="close-row"><button data-close="settingsOverlay">닫기</button></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- 안드로이드 ViewerSettings 프리셋과 동일하게 맞춤 ----------
+  const BG_PRESETS = [
+    { name: "WHITE", label: "흰색", color: "#FFFFFF" },
+    { name: "SEPIA", label: "세피아", color: "#F5ECD3" },
+    { name: "MINT", label: "연한 민트", color: "#E3F2E1" },
+    { name: "DARK_GRAY", label: "다크 그레이", color: "#1E1E1E" },
+    { name: "BLACK", label: "검정", color: "#000000" },
+  ];
+  const TEXT_COLOR_PRESETS = [
+    { name: "BLACK", label: "검정", color: "#000000" },
+    { name: "DARK_GRAY", label: "진회색", color: "#333333" },
+    { name: "SEPIA_BROWN", label: "세피아 갈색", color: "#5B4636" },
+    { name: "LIGHT_GRAY", label: "연회색", color: "#CCCCCC" },
+    { name: "WHITE", label: "흰색", color: "#FFFFFF" },
+  ];
+  const SIZE_PRESETS = [12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32]; // px, 기본 18(index 3)
+  const DEFAULT_SIZE_INDEX = 3;
+
+  const SETTINGS_KEY = "webviewer_settings";
+  const STATE_KEY = "webviewer_folder_state"; // 폴더별 마지막 파일 / 스크롤 위치
+  const DB_NAME = "webviewer_handles";
+  const DB_STORE = "handles";
+  const DB_KEY = "lastFolder";
+
+  // ---------- DOM ----------
+  const pickScreen = document.getElementById("pickScreen");
+  const viewerScreen = document.getElementById("viewerScreen");
+  const pickFolderBtn = document.getElementById("pickFolderBtn");
+  const changeFolderBtn = document.getElementById("changeFolderBtn");
+  const unsupportedNotice = document.getElementById("unsupportedNotice");
+
+  const fileTitleEl = document.getElementById("fileTitle");
+  const positionLabelEl = document.getElementById("positionLabel");
+  const textContentEl = document.getElementById("textContent");
+  const scrollContentEl = document.getElementById("scrollContent");
+  const loadingNoticeEl = document.getElementById("loadingNotice");
+  const emptyNoticeEl = document.getElementById("emptyNotice");
+  const prevBtn = document.getElementById("prevBtn");
+  const nextBtn = document.getElementById("nextBtn");
+  const fileListBtn = document.getElementById("fileListBtn");
+  const settingsBtn = document.getElementById("settingsBtn");
+
+  const fileListOverlay = document.getElementById("fileListOverlay");
+  const fileListItemsEl = document.getElementById("fileListItems");
+  const settingsOverlay = document.getElementById("settingsOverlay");
+  const previewBoxEl = document.getElementById("previewBox");
+  const bgSwatchesEl = document.getElementById("bgSwatches");
+  const textColorSwatchesEl = document.getElementById("textColorSwatches");
+  const sizeSlider = document.getElementById("sizeSlider");
+  const sizeValueEl = document.getElementById("sizeValue");
+
+  document.querySelectorAll("[data-close]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.getElementById(btn.dataset.close).style.display = "none";
+    });
+  });
+  [fileListOverlay, settingsOverlay].forEach((overlay) => {
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) overlay.style.display = "none";
+    });
+  });
+
+  // ---------- 상태 ----------
+  let dirHandle = null;
+  let files = []; // { name, handle }
+  let currentIndex = -1;
+  let settings = loadSettings();
+  let scrollSaveTimer = null;
+
+  // ---------- 자연 순서 정렬 (안드로이드 NaturalOrderComparator와 동일 로직) ----------
+  function naturalCompare(a, b) {
+    let i = 0, j = 0;
+    while (i < a.length && j < b.length) {
+      const ca = a[i], cb = b[j];
+      const da = ca >= "0" && ca <= "9";
+      const db = cb >= "0" && cb <= "9";
+      if (da && db) {
+        let ei = i, ej = j;
+        while (ei < a.length && a[ei] >= "0" && a[ei] <= "9") ei++;
+        while (ej < b.length && b[ej] >= "0" && b[ej] <= "9") ej++;
+        const numA = BigInt(a.slice(i, ei).replace(/^0+(?=\d)/, "") || "0");
+        const numB = BigInt(b.slice(j, ej).replace(/^0+(?=\d)/, "") || "0");
+        if (numA !== numB) return numA < numB ? -1 : 1;
+        i = ei; j = ej;
+      } else {
+        if (ca !== cb) return ca < cb ? -1 : 1;
+        i++; j++;
+      }
+    }
+    return (a.length - i) - (b.length - j);
+  }
+
+  // ---------- 설정 저장/불러오기 ----------
+  function loadSettings() {
+    try {
+      const raw = localStorage.getItem(SETTINGS_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return { bgIndex: 0, textColorIndex: 0, sizeIndex: DEFAULT_SIZE_INDEX };
+  }
+  function saveSettings() {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  }
+
+  function loadFolderState() {
+    try {
+      const raw = localStorage.getItem(STATE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return {};
+  }
+  function saveFolderState(state) {
+    localStorage.setItem(STATE_KEY, JSON.stringify(state));
+  }
+  function folderStateKey(folderName, fileName) {
+    return folderName + "::" + fileName;
+  }
+
+  // ---------- IndexedDB (마지막 폴더 핸들 저장 → 다음에 자동 재오픈) ----------
+  function openDb() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = () => req.result.createObjectStore(DB_STORE);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function storeHandle(handle) {
+    const db = await openDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_STORE, "readwrite");
+      tx.objectStore(DB_STORE).put(handle, DB_KEY);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+  async function loadStoredHandle() {
+    try {
+      const db = await openDb();
+      return await new Promise((resolve, reject) => {
+        const tx = db.transaction(DB_STORE, "readonly");
+        const req = tx.objectStore(DB_STORE).get(DB_KEY);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => reject(req.error);
+      });
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // ---------- 폴더 열기 ----------
+  async function pickFolder() {
+    try {
+      const handle = await window.showDirectoryPicker();
+      await storeHandle(handle);
+      await openFolder(handle);
+    } catch (e) {
+      // 사용자가 취소한 경우 등은 조용히 무시
+    }
+  }
+
+  async function openFolder(handle) {
+    dirHandle = handle;
+    pickScreen.style.display = "none";
+    viewerScreen.style.display = "flex";
+
+    files = [];
+    for await (const entry of dirHandle.values()) {
+      if (entry.kind === "file" && entry.name.toLowerCase().endsWith(".txt")) {
+        files.push({ name: entry.name, handle: entry });
+      }
+    }
+    files.sort((a, b) => naturalCompare(a.name, b.name));
+
+    if (files.length === 0) {
+      currentIndex = -1;
+      renderEmpty();
+      return;
+    }
+
+    const folderState = loadFolderState();
+    const lastFileKey = "lastFile::" + dirHandle.name;
+    const lastFileName = folderState[lastFileKey];
+    const foundIndex = files.findIndex((f) => f.name === lastFileName);
+    currentIndex = foundIndex >= 0 ? foundIndex : 0;
+
+    await loadCurrentFile();
+  }
+
+  async function tryReopenLastFolder() {
+    const handle = await loadStoredHandle();
+    if (!handle) return;
+    try {
+      const perm = await handle.queryPermission({ mode: "read" });
+      if (perm === "granted") {
+        await openFolder(handle);
+      }
+      // "prompt" 상태면 브라우저 정책상 사용자 제스처 없이 재요청할 수 없으므로
+      // 그냥 폴더 선택 화면을 보여준다 (아래에 안내문 표시).
+    } catch (e) {
+      // 무시하고 폴더 선택 화면 유지
+    }
+  }
+
+  // ---------- 렌더링 ----------
+  function renderEmpty() {
+    fileTitleEl.textContent = "";
+    positionLabelEl.textContent = "";
+    textContentEl.textContent = "";
+    scrollContentEl.style.display = "none";
+    emptyNoticeEl.style.display = "block";
+    loadingNoticeEl.style.display = "none";
+    prevBtn.disabled = true;
+    nextBtn.disabled = true;
+    fileListBtn.disabled = true;
+  }
+
+  async function loadCurrentFile() {
+    const entry = files[currentIndex];
+    if (!entry) return;
+
+    emptyNoticeEl.style.display = "none";
+    scrollContentEl.style.display = "block";
+    loadingNoticeEl.style.display = "block";
+    textContentEl.textContent = "";
+
+    fileTitleEl.textContent = entry.name;
+    positionLabelEl.textContent = (currentIndex + 1) + " / " + files.length;
+    prevBtn.disabled = currentIndex <= 0;
+    nextBtn.disabled = currentIndex >= files.length - 1;
+    fileListBtn.disabled = false;
+
+    const file = await entry.handle.getFile();
+    const text = await file.text();
+
+    textContentEl.textContent = text;
+    loadingNoticeEl.style.display = "none";
+    applySettings();
+
+    // 마지막 파일 기록
+    const folderState = loadFolderState();
+    folderState["lastFile::" + dirHandle.name] = entry.name;
+    saveFolderState(folderState);
+
+    // 저장된 스크롤 위치 복원
+    const key = folderStateKey(dirHandle.name, entry.name);
+    const savedScroll = folderState[key] || 0;
+    requestAnimationFrame(() => { scrollContentEl.scrollTop = savedScroll; });
+  }
+
+  function saveScrollPosition() {
+    const entry = files[currentIndex];
+    if (!entry || !dirHandle) return;
+    const folderState = loadFolderState();
+    folderState[folderStateKey(dirHandle.name, entry.name)] = scrollContentEl.scrollTop;
+    saveFolderState(folderState);
+  }
+
+  scrollContentEl.addEventListener("scroll", () => {
+    clearTimeout(scrollSaveTimer);
+    scrollSaveTimer = setTimeout(saveScrollPosition, 200);
+  });
+
+  // ---------- 이전/다음 ----------
+  prevBtn.addEventListener("click", async () => {
+    if (currentIndex <= 0) return;
+    saveScrollPosition();
+    currentIndex--;
+    await loadCurrentFile();
+  });
+  nextBtn.addEventListener("click", async () => {
+    if (currentIndex >= files.length - 1) return;
+    saveScrollPosition();
+    currentIndex++;
+    await loadCurrentFile();
+  });
+
+  // ---------- 파일 목록 다이얼로그 ----------
+  fileListBtn.addEventListener("click", () => {
+    fileListItemsEl.innerHTML = "";
+    files.forEach((f, idx) => {
+      const li = document.createElement("li");
+      li.textContent = f.name;
+      if (idx === currentIndex) li.classList.add("selected");
+      li.addEventListener("click", async () => {
+        if (idx === currentIndex) { fileListOverlay.style.display = "none"; return; }
+        saveScrollPosition();
+        currentIndex = idx;
+        fileListOverlay.style.display = "none";
+        await loadCurrentFile();
+      });
+      fileListItemsEl.appendChild(li);
+    });
+    fileListOverlay.style.display = "flex";
+  });
+
+  // ---------- 설정 다이얼로그 ----------
+  function applySettings() {
+    const bg = BG_PRESETS[settings.bgIndex] || BG_PRESETS[0];
+    const tc = TEXT_COLOR_PRESETS[settings.textColorIndex] || TEXT_COLOR_PRESETS[0];
+    const size = SIZE_PRESETS[settings.sizeIndex] || SIZE_PRESETS[DEFAULT_SIZE_INDEX];
+    scrollContentEl.style.background = bg.color;
+    textContentEl.style.color = tc.color;
+    textContentEl.style.fontSize = size + "px";
+  }
+
+  function renderSwatches(container, presets, selectedIndex, onPick) {
+    container.innerHTML = "";
+    presets.forEach((preset, idx) => {
+      const div = document.createElement("div");
+      div.className = "swatch" + (idx === selectedIndex ? " selected" : "");
+      div.style.background = preset.color;
+      div.style.boxShadow = preset.color === "#FFFFFF" ? "inset 0 0 0 1px #ddd" : "none";
+      div.title = preset.label;
+      div.addEventListener("click", () => onPick(idx));
+      container.appendChild(div);
+    });
+  }
+
+  function refreshSettingsDialog() {
+    const bg = BG_PRESETS[settings.bgIndex];
+    const tc = TEXT_COLOR_PRESETS[settings.textColorIndex];
+    const size = SIZE_PRESETS[settings.sizeIndex];
+
+    previewBoxEl.style.background = bg.color;
+    previewBoxEl.style.color = tc.color;
+    previewBoxEl.style.fontSize = size + "px";
+    sizeValueEl.textContent = " " + size + "px";
+    sizeSlider.value = settings.sizeIndex;
+
+    renderSwatches(bgSwatchesEl, BG_PRESETS, settings.bgIndex, (idx) => {
+      settings.bgIndex = idx;
+      saveSettings();
+      applySettings();
+      refreshSettingsDialog();
+    });
+    renderSwatches(textColorSwatchesEl, TEXT_COLOR_PRESETS, settings.textColorIndex, (idx) => {
+      settings.textColorIndex = idx;
+      saveSettings();
+      applySettings();
+      refreshSettingsDialog();
+    });
+  }
+
+  sizeSlider.addEventListener("input", () => {
+    settings.sizeIndex = Number(sizeSlider.value);
+    saveSettings();
+    applySettings();
+    refreshSettingsDialog();
+  });
+
+  settingsBtn.addEventListener("click", () => {
+    refreshSettingsDialog();
+    settingsOverlay.style.display = "flex";
+  });
+
+  // ---------- 폴더 선택/변경 ----------
+  pickFolderBtn.addEventListener("click", pickFolder);
+  changeFolderBtn.addEventListener("click", async () => {
+    saveScrollPosition();
+    await pickFolder();
+  });
+
+  // ---------- 초기화 ----------
+  if (!("showDirectoryPicker" in window)) {
+    pickFolderBtn.style.display = "none";
+    unsupportedNotice.style.display = "block";
+  } else {
+    tryReopenLastFolder();
+  }
+})();
+</script>
+</body>
+</html>
